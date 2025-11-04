@@ -1,0 +1,53 @@
+category,moderate,moist,wet,notes
+report_date,3/4/25,3/4/25,3/4/25,Date of the report
+fire_type,Prescribed,Prescribed,Prescribed,Type of fire
+fuelbed,51 - Coastal sage shrubland,51 - Coastal sage shrubland,51 - Coastal sage shrubland,Fuelbed type
+fire_size_acres,1,1,1,Size of fire in acres
+latitude,34.049,34.049,34.049,Latitude coordinate
+longitude,-118.654,-118.654,-118.654,Longitude coordinate
+duff_consumption_tpa,0,0,0,Duff consumption (tons/acre)
+flaming_consumption_tpa,11,11,11,Flaming consumption (tons/acre)
+smoldering_consumption_tpa,1.2,1.13,1.03,Smoldering consumption (tons/acre)
+residual_consumption_tpa,0,0,0,Residual consumption (tons/acre)
+total_consumption_tpa,12.2,12.13,12.03,Total consumption (tons/acre)
+heat_release_btu_ft2,4482,4454,4419,Heat release (BTU/ft2)
+pm2_5_emissions_t,0,0,0,PM2.5 emissions (tons)
+pm10_emissions_t,0,0,0,PM10 emissions (tons)
+co_emissions_t,1,1,1,CO emissions (tons)
+co2_emissions_t,20,20,20,CO2 emissions (tons)
+ghg_emissions_t,22,22,22,GHGs emissions (tons)
+ch4_emissions_t,0,0,0,CH4 emissions (tons)
+nox_emissions_t,0,0,0,NOx emissions (tons)
+vocs_emissions_t,0,0,0,VOCs emissions (tons)
+nh3_emissions_t,0,0,0,NH3 emissions (tons)
+so2_emissions_t,0,0,0,SO2 emissions (tons)
+fuel_moisture_level,Moderate,Moist,Wet,Fuel moisture level
+fuel_moisture_1000hr_pct,30,35,40,1000-hour fuel moisture (%)
+duff_moisture_pct,75,100,130,Duff moisture (%)
+litter_moisture_pct,16,22,30,Litter moisture (%)
+duff_percent_available,45,30,20,Duff percent available
+sound_coarse_woody_debris_pct_available,45,30,20,Sound coarse woody debris percent available
+rotten_coarse_woody_debris_pct_available,50,35,25,Rotten coarse woody debris percent available
+shrub_consumption_pct,50,50,50,Shrub consumption (%)
+canopy_consumption_pct,0,0,0,Canopy consumption (%)
+total_fuel_loading_tpa,17.79,17.79,17.79,Total fuel loading (tons/acre)
+primary_shrubs_tpa,3.02,3.02,3.02,Primary shrubs loading (tons/acre)
+secondary_shrubs_tpa,6.2,6.2,6.2,Secondary shrubs loading (tons/acre)
+needle_drape_tpa,0,0,0,Needle drape (tons/acre)
+wood_1hr_tpa,0.1,0.1,0.1,1-hour sound wood loading (tons/acre)
+wood_10hr_tpa,0.1,0.1,0.1,10-hour sound wood loading (tons/acre)
+wood_100hr_tpa,0,0,0,100-hour sound wood loading (tons/acre)
+wood_1000hr_tpa,0,0,0,1000-hour sound wood loading (tons/acre)
+wood_10000hr_tpa,0,0,0,"10,000-hour sound wood loading (tons/acre)"
+wood_over_10000hr_tpa,0,0,0,">10,000-hour sound wood loading (tons/acre)"
+litter_tpa,8.37,8.37,8.37,Litter loading (tons/acre)
+litter_depth_in,3,3,3,Litter depth (inches)
+upper_duff_tpa,0,0,0,Upper duff loading (tons/acre)
+lower_duff_tpa,0,0,0,Lower duff loading (tons/acre)
+basal_accumulation_tpa,0,0,0,Basal accumulation (tons/acre)
+squirrel_middens_tpa,0,0,0,Squirrel middens loading (tons/acre)
+rotten_stumps_tpa,0,0,0,Rotten stumps loading (tons/acre)
+lightered_stumps_tpa,0,0,0,Lightered stumps loading (tons/acre)
+clean_piles_tpa,0,0,0,Clean piles loading (tons/acre)
+dirty_piles_tpa,0,0,0,Dirty piles loading (tons/acre)
+really_dirty_piles_tpa,0,0,0,Really dirty piles loading (tons/acre)

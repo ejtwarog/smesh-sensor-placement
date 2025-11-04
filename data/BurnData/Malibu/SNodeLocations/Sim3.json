@@ -1,0 +1,53 @@
+{
+    "features": [
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69253,
+                    34.04834,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "c3cd2b48-0b28-4d06-884c-727e18b56883",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "A200FF",
+                "description": "",
+                "title": "S3_1",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741228959497,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69206,
+                    34.04581,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "0e2a1b71-4ca2-47e9-a80e-f5de294617fa",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "A200FF",
+                "description": "",
+                "title": "S3_2",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741228970824,
+                "marker-rotation": null
+            }
+        }
+    ],
+    "type": "FeatureCollection"
+}

@@ -1,0 +1,125 @@
+{
+    "features": [
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69279,
+                    34.04373,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "7cdc2585-136c-4f33-9810-b599486ba55f",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_1",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741206203241,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69625,
+                    34.04564,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "fcd0b504-ab9a-49ab-ad3f-d62176459e6a",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_2",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741206233496,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.70007,
+                    34.04948,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "dbeb3700-70cb-4dbe-9d1e-e5d9a0a8db7d",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_3",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741206276045,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69698,
+                    34.05017,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "a0f06319-6cff-4ce7-825a-eb929040b3da",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_4",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741206304939,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -118.69348,
+                    34.04997,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "4da41407-55ec-4f0a-a80f-80b2ce61c6f9",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_5",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741206330332,
+                "marker-rotation": null
+            }
+        }
+    ],
+    "type": "FeatureCollection"
+}

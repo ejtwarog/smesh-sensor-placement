@@ -1,0 +1,149 @@
+{
+    "features": [
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.25022,
+                    41.27964,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "b36b8170-4de2-4b0e-bbaf-748b8374258b",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_1",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224439417,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.25019,
+                    41.27626,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "b192e311-78b8-4589-826e-293d6619bf38",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_2",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224451653,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.24854,
+                    41.27253,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "6c908764-6704-4805-bcc7-e72a6354b4f4",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_3",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224461952,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.27974,
+                    41.29857,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "c28ba167-a4f8-43b1-9eb3-f8a4ecfa7fd8",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_4",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224527339,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.28466,
+                    41.29543,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "6fb9e6a7-fa1d-4767-af34-3ad56bd7bdb1",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_5",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224529337,
+                "marker-rotation": null
+            }
+        },
+        {
+            "geometry": {
+                "coordinates": [
+                    -122.28333,
+                    41.28995,
+                    0,
+                    0
+                ],
+                "type": "Point"
+            },
+            "id": "8d9b50a0-ea43-4b3e-9b76-f52e32728b42",
+            "type": "Feature",
+            "properties": {
+                "marker-symbol": "point",
+                "creator": "BGCMRU",
+                "marker-color": "F0F000",
+                "description": "",
+                "title": "S2_6",
+                "marker-size": "1",
+                "class": "Marker",
+                "updated": 1741224546205,
+                "marker-rotation": null
+            }
+        }
+    ],
+    "type": "FeatureCollection"
+}
