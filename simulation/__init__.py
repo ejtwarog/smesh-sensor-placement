@@ -8,9 +8,5 @@ __version__ = "0.1.0"
 
 # Import core functionality
 from .core.disturbance import *
-from .core.height_distribution import *
 from .core.wind_distribution import *
-from .core.wind_vectors_2d import *
-
-# Import I/O utilities
-from .io.load_data import *
+from .core.terrain_vectors import *

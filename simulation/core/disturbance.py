@@ -8,7 +8,6 @@ including height and wind disturbances for smoke simulation trajectories.
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import numpy as np
-from .height_distribution import HeightDistribution
 from .wind_distribution import WindDistribution
 
 
@@ -37,7 +36,7 @@ class FullDisturbances:
         wind_dist: Wind distribution model
     """
     
-    def __init__(self, height_dist: HeightDistribution, wind_dist: WindDistribution):
+    def __init__(self, height_dist, wind_dist: WindDistribution):
         self.height_dist = height_dist
         self.wind_dist = wind_dist
     

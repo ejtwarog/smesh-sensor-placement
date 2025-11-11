@@ -36,7 +36,7 @@ from simulation_parameters import (
     cache_wind_data, get_cached_wind_data, has_wind_data
 )
 from visualization_3d import create_3d_visualization
-from data_loader import load_all_snodes, load_all_burn_areas
+from data_loader import load_all_snodes, load_all_burn_areas, load_geojson, load_snode_data, load_burn_area
 
 # Import atmospheric stability classes
 from core.plume_model import AIR_COLUMN_STABILITY_CLASSES
@@ -78,48 +78,6 @@ PORT = 8052  # Changed from 8051 to 8052 to avoid port conflicts
 assets_dir = Path(__file__).parent.parent / "data"
 app = dash.Dash(__name__, suppress_callback_exceptions=True, assets_folder=str(assets_dir))
 app.title = "Smoke Simulation Dashboard"
-
-def load_geojson(file_path):
-    """Load a GeoJSON file and return a GeoDataFrame."""
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-    try:
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        
-        # Convert 4D coordinates to 2D if necessary
-        for feature in data['features']:
-            if 'geometry' in feature and 'coordinates' in feature['geometry']:
-                def process_coords(coords):
-                    if isinstance(coords[0], (list, tuple)):
-                        return [process_coords(c) for c in coords]
-                    else:
-                        # Take only first two coordinates (x, y)
-                        return coords[:2]
-                
-                # Process all coordinates in the geometry
-                coords = feature['geometry']['coordinates']
-                feature['geometry']['coordinates'] = process_coords(coords)
-        
-        return gpd.GeoDataFrame.from_features(data['features'])
-    except Exception as e:
-        print(f"Error loading {file_path}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None
-
-def load_snode_data(file_path, sim_num):
-    """Load SNode data from a GeoJSON file."""
-    gdf = load_geojson(file_path)
-    gdf['simulation'] = f'Sim {sim_num}'
-    gdf['label'] = [f'Sim {sim_num} Node {i+1}' for i in range(len(gdf))]
-    return gdf
-
-def load_burn_area(file_path, area_num):
-    """Load burn area data from a GeoJSON file."""
-    gdf = load_geojson(file_path)
-    gdf['area'] = f'Burn Area {area_num}'
-    return gdf
 
 # Load data
 snodes = load_all_snodes(DATA_DIR / LOCATION / SNODE_DIR)
@@ -168,7 +126,7 @@ def serve_layout():
                        style={'display': 'inline-block', 'verticalAlign': 'middle', 'color': 'white', 'margin': '0'})
             ], style={'textAlign': 'left', 'backgroundColor': STANFORD_RED, 'padding': '10px 10px', 'display': 'flex', 'alignItems': 'center'}),
             dcc.Tabs(id='tabs', value='map', children=[
-                dcc.Tab(label='2D Map View', value='map'),
+                dcc.Tab(label='Map View', value='map'),
                 dcc.Tab(label='Wind Data', value='data'),
                 dcc.Tab(label='Simulation Parameters', value='sim-params'),
             ]),
@@ -179,27 +137,7 @@ def serve_layout():
         html.Div(id='dummy-output', style={'display': 'none'}),
         
         # Hidden div to force initial load
-        html.Div(id='initial-load', style={'display': 'none'}),
-        
-        # Add a refresh button outside the tabs
-        html.Div([
-            html.Button('Refresh 3D View', 
-                      id='refresh-3d', 
-                      n_clicks=0,
-                      style={
-                          'position': 'fixed',
-                          'bottom': '20px',
-                          'right': '20px',
-                          'zIndex': '1000',
-                          'backgroundColor': STANFORD_RED,
-                          'color': 'white',
-                          'border': 'none',
-                          'borderRadius': '4px',
-                          'padding': '10px 15px',
-                          'cursor': 'pointer',
-                          'boxShadow': '0 2px 4px rgba(0,0,0,0.2)'
-                      })
-        ])
+        html.Div(id='initial-load', style={'display': 'none'})
     ])
 
 # Set the layout
@@ -493,32 +431,47 @@ def render_content(tab):
                     'overflowY': 'auto'
                 }),
                 
-                # Right side: Wind rose and data table side-by-side
+                # Right side: Wind roses and data table
                 html.Div([
-                    # Wind Rose (left side of right panel) - only for historic data
+                    # Wind Roses (top)
                     html.Div([
-                        html.H3('Wind Rose', style={'color': STANFORD_RED, 'marginTop': '0'}),
-                        html.Div(id='wind-rose-plot-historic')
+                        # Historic Wind Rose
+                        html.Div([
+                            html.H3('Historic Wind Rose', style={'color': STANFORD_RED, 'marginTop': '0'}),
+                            html.Div(id='wind-rose-plot-historic')
+                        ], style={
+                            'width': '50%',
+                            'display': 'inline-block',
+                            'verticalAlign': 'top',
+                            'paddingRight': '15px',
+                            'boxSizing': 'border-box'
+                        }),
+                        
+                        # Von Mises Wind Rose
+                        html.Div([
+                            html.H3('Von Mises Wind Rose', style={'color': STANFORD_RED, 'marginTop': '0'}),
+                            html.Div(id='wind-rose-plot-vonmises')
+                        ], style={
+                            'width': '50%',
+                            'display': 'inline-block',
+                            'verticalAlign': 'top',
+                            'boxSizing': 'border-box'
+                        })
                     ], style={
-                        'width': '50%',
-                        'display': 'inline-block',
-                        'verticalAlign': 'top',
-                        'paddingRight': '15px',
-                        'boxSizing': 'border-box'
+                        'width': '100%',
+                        'marginBottom': '20px'
                     }),
                     
-                    # Wind Data Table (right side of right panel)
+                    # Wind Data Table (bottom)
                     html.Div([
                         html.H3('Wind Data', style={'color': STANFORD_RED, 'marginTop': '0'}),
                         html.Div(id='wind-data-table-forecasted', style={'marginBottom': '30px'}),
                         html.Div(id='wind-data-table-historic')
                     ], style={
-                        'width': '50%',
-                        'display': 'inline-block',
-                        'verticalAlign': 'top',
+                        'width': '100%',
                         'boxSizing': 'border-box',
                         'overflowY': 'auto',
-                        'maxHeight': '80vh'
+                        'maxHeight': '40vh'
                     })
                 ], style={
                     'width': '70%',
@@ -713,13 +666,14 @@ def get_geometry_coordinates(geom):
         return [geom.x], [geom.y]
     return [], []
 
-def create_wind_rose_figure(df: pd.DataFrame, title: str = "Wind Rose", overlay_vonmises: bool = True):
+def create_wind_rose_figure(df: pd.DataFrame, title: str = "Wind Rose", overlay_vonmises: bool = True, show_observed: bool = True):
     """Create a Plotly polar bar chart wind rose from wind data with optional von Mises overlay.
     
     Args:
         df: DataFrame with 'wind_speed_mps' and 'wind_dir_deg' columns
         title: Title for the plot
         overlay_vonmises: If True, overlay the fitted von Mises distribution
+        show_observed: If True, show the observed data bars; if False, show only von Mises curve
     
     Returns:
         plotly.graph_objects.Figure or None if insufficient data
@@ -757,21 +711,29 @@ def create_wind_rose_figure(df: pd.DataFrame, title: str = "Wind Rose", overlay_
     directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
                   'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
     
-    # Create figure with bar chart
-    fig = go.Figure(data=[
-        go.Barpolar(
-            r=frac,
-            theta=sector_centers,
-            width=sector,
-            marker_color='#8C1515',
-            marker_line_color='white',
-            marker_line_width=1,
-            hovertemplate='<b>%{customdata}</b><br>Frequency: %{r:.1%}<extra></extra>',
-            customdata=directions,
-            name='Observed',
-            opacity=0.7
+    # Initialize figure data
+    fig_data = []
+    max_radial = max(frac) * 1.15
+    
+    # Add observed data bars if requested
+    if show_observed:
+        fig_data.append(
+            go.Barpolar(
+                r=frac,
+                theta=sector_centers,
+                width=sector,
+                marker_color='#8C1515',
+                marker_line_color='white',
+                marker_line_width=1,
+                hovertemplate='<b>%{customdata}</b><br>Frequency: %{r:.1%}<extra></extra>',
+                customdata=directions,
+                name='Observed',
+                opacity=0.7
+            )
         )
-    ])
+    
+    # Create figure
+    fig = go.Figure(data=fig_data)
     
     # Add von Mises overlay if requested
     if overlay_vonmises:
@@ -798,6 +760,10 @@ def create_wind_rose_figure(df: pd.DataFrame, title: str = "Wind Rose", overlay_
             # Normalize PDF to match histogram scale
             pdf_normalized = pdf_values / (2 * np.pi) * len(direc)
             
+            # Update max radial if von Mises extends further
+            if not show_observed:
+                max_radial = max(pdf_normalized) * 1.15
+            
             # Add von Mises curve as a scatter trace
             fig.add_trace(go.Scatterpolar(
                 r=pdf_normalized,
@@ -815,7 +781,7 @@ def create_wind_rose_figure(df: pd.DataFrame, title: str = "Wind Rose", overlay_
         polar=dict(
             radialaxis=dict(
                 visible=True,
-                range=[0, max(frac) * 1.15],
+                range=[0, max_radial],
                 tickangle=90
             ),
             angularaxis=dict(
@@ -1210,7 +1176,8 @@ def update_wind_data(n_clicks, lat, lon,
 # Callback for handling historic wind data fetching and display
 @app.callback(
     [Output('wind-data-table-historic', 'children'),
-     Output('wind-rose-plot-historic', 'children')],
+     Output('wind-rose-plot-historic', 'children'),
+     Output('wind-rose-plot-vonmises', 'children')],
     [Input('get-wind-data', 'n_clicks')],
     [State('wind-lat-input', 'value'),
      State('wind-lon-input', 'value')],
@@ -1264,7 +1231,7 @@ def update_historic_wind_data(n_clicks, lat, lon):
         if df.empty:
             return (
                 html.Div("No historic wind data available for this location", style={'color': 'red'}),
-                "No data found",
+                html.Div("No data found", style={'color': 'red'}),
                 html.Div("No data available", style={'color': 'red'})
             )
         
@@ -1352,15 +1319,21 @@ def update_historic_wind_data(n_clicks, lat, lon):
             ]
         )
         
-        # Create wind rose
-        wind_rose_fig = create_wind_rose_figure(df_filtered, title="Historic Wind Rose (Last 7 Days)")
-        wind_rose_component = dcc.Graph(figure=wind_rose_fig) if wind_rose_fig else html.Div("No wind data available for wind rose")
+        # Create wind roses
+        # Historic wind rose (without von Mises overlay)
+        wind_rose_historic_fig = create_wind_rose_figure(df_filtered, title="Historic Wind Rose (Last 7 Days)", overlay_vonmises=False, show_observed=True)
+        wind_rose_historic_component = dcc.Graph(figure=wind_rose_historic_fig) if wind_rose_historic_fig else html.Div("No wind data available for wind rose")
         
-        return [summary, html.Hr(), table], wind_rose_component
+        # Von Mises wind rose (von Mises distribution only, no observed data)
+        wind_rose_vonmises_fig = create_wind_rose_figure(df_filtered, title="Von Mises Fit (Last 7 Days)", overlay_vonmises=True, show_observed=False)
+        wind_rose_vonmises_component = dcc.Graph(figure=wind_rose_vonmises_fig) if wind_rose_vonmises_fig else html.Div("No wind data available for von Mises fit")
+        
+        return [summary, html.Hr(), table], wind_rose_historic_component, wind_rose_vonmises_component
         
     except Exception as e:
         error_msg = f"Error fetching historic wind data: {str(e)}"
         return (
+            html.Div(error_msg, style={'color': 'red'}),
             html.Div(error_msg, style={'color': 'red'}),
             html.Div(error_msg, style={'color': 'red'})
         )
@@ -1395,7 +1368,7 @@ def update_map(visible_simulations, visible_areas):
                         ))
     
     # Add sensor nodes
-    colors = [STANFORD_RED, STANFORD_LIGHT_RED, STANFORD_DARK_RED]
+    colors = ['#0066CC', '#00CC66', '#FF9900']  # Blue, Green, Orange for better differentiation
     for i, (snode_df, color) in enumerate(zip(snodes, colors), 1):
         sim_id = f'sim{i}'
         if sim_id in visible_simulations and not snode_df.empty and hasattr(snode_df, 'geometry'):

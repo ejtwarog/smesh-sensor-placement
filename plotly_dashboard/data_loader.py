@@ -7,7 +7,6 @@ import geopandas as gpd
 from typing import List, Optional, Union, Dict, Any
 import numpy as np
 from shapely.geometry import Point, Polygon, MultiPolygon, shape
-import fiona
 
 # Configure GeoPandas to use the 'pyogrio' engine for better performance and reliability
 gpd.options.io_engine = 'pyogrio'
@@ -94,74 +93,6 @@ def load_geojson(file_path: Path) -> Optional[gpd.GeoDataFrame]:
     except Exception as e:
         print(f"Error loading {file_path}: {e}")
         return None
-
-def load_all_snodes(directory: Union[str, Path]) -> List[gpd.GeoDataFrame]:
-    """Load all SNode location files from the specified directory."""
-    directory = Path(directory)
-    if not directory.exists():
-        print(f"Directory not found: {directory}")
-        return []
-        
-    snode_dfs = []
-    
-    # Try to load GeoJSON files first
-    for file_path in directory.glob("*.json"):
-        if file_path.name.startswith(('Sim', 'sim')):  # Case insensitive match
-            gdf = load_geojson(file_path)
-            if gdf is not None and not gdf.empty:
-                # Add a label column if it doesn't exist
-                if 'label' not in gdf.columns:
-                    gdf['label'] = [f"Node {i+1}" for i in range(len(gdf))]
-                snode_dfs.append(gdf)
-                print(f"Loaded {file_path.name} with {len(gdf)} nodes")
-    
-    # If no JSON files found, try text files
-    if not snode_dfs:
-        for file_path in directory.glob("*.txt"):
-            if 'snode' in file_path.name.lower():
-                try:
-                    # Try to read as CSV/TSV with coordinates
-                    df = gpd.read_file(file_path)
-                    if 'x' in df.columns and 'y' in df.columns:
-                        geometry = [Point(xy) for xy in zip(df.x, df.y)]
-                        gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
-                        gdf['label'] = [f"Node {i+1}" for i in range(len(gdf))]
-                        snode_dfs.append(gdf)
-                        print(f"Loaded {file_path.name} with {len(gdf)} nodes")
-                except Exception as e:
-                    print(f"Error loading {file_path}: {e}")
-    
-    return snode_dfs
-
-def load_all_burn_areas(directory: Union[str, Path]) -> List[gpd.GeoDataFrame]:
-    """Load all burn area files from the specified directory."""
-    directory = Path(directory)
-    if not directory.exists():
-        print(f"Directory not found: {directory}")
-        return []
-        
-    burn_area_dfs = []
-    
-    # Try to load GeoJSON files first
-    for file_path in directory.glob("*.json"):
-        gdf = load_geojson(file_path)
-        if gdf is not None and not gdf.empty:
-            burn_area_dfs.append(gdf)
-            print(f"Loaded burn area: {file_path.name}")
-    
-    # If no JSON files found, try shapefiles
-    if not burn_area_dfs:
-        for file_path in directory.glob("*.shp"):
-            try:
-                gdf = gpd.read_file(file_path)
-                if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
-                    gdf = gdf.to_crs(epsg=4326)
-                burn_area_dfs.append(gdf)
-                print(f"Loaded burn area: {file_path.name}")
-            except Exception as e:
-                print(f"Error loading {file_path}: {e}")
-    
-    return burn_area_dfs
 
 def load_snode_data(file_path: str, sim_num: int) -> gpd.GeoDataFrame:
     """Load SNode data from a GeoJSON file."""

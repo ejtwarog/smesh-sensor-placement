@@ -9,7 +9,6 @@ from .disturbance import (
     most_likely_disturbance_trajectories
 )
 
-from .height_distribution import HeightDistribution
 from .wind_distribution import WindDistribution
 
 __all__ = [
@@ -17,6 +16,5 @@ __all__ = [
     "FullDisturbanceTrajectory",
     "find_most_likely_trajectories",
     "most_likely_disturbance_trajectories",
-    "HeightDistribution",
     "WindDistribution"
 ]

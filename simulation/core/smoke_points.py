@@ -5,11 +5,19 @@ This module provides functionality for sampling points from burn regions
 to simulate smoke sources in wildfire modeling.
 """
 
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple
 import numpy as np
 from shapely.geometry import Polygon as ShapelyPolygon, Point
 from shapely.ops import unary_union
 import logging
+from pathlib import Path
+import sys
+
+# Add the project root to the Python path
+project_root = Path(__file__).parents[2]  # Go up to smesh-sensor-placement
+sys.path.insert(0, str(project_root))
+
+from simulation.utils.geo_utils import load_geojson_polygons, sample_points_in_polygon
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -102,42 +110,6 @@ class BurnScene:
             return self.burn_polys[time_step]
         return None
     
-    def sample_smoke_points(
-        self,
-        n_samples_per_step: int,
-        current_time_step: int,
-        max_attempts: int = 10,
-        verbose: bool = False
-    ) -> np.ndarray:
-        """Sample smoke points from all burn polygons up to the current time step.
-        
-        Args:
-            n_samples_per_step: Number of samples to generate per time step
-            current_time_step: Current time step (samples from previous steps)
-            max_attempts: Maximum number of sampling attempts per polygon
-            verbose: Whether to print debug information
-            
-        Returns:
-            Array of sampled points with shape (n_points, 2)
-        """
-        if current_time_step <= 0:
-            return np.zeros((0, 2))
-        
-        all_points = []
-        
-        for t in range(min(current_time_step, len(self.burn_polys))):
-            poly = self.burn_polys[t]
-            if poly is not None:
-                points = sample_points_from_polygon(
-                    poly, n_samples_per_step, max_attempts, verbose
-                )
-                all_points.append(points)
-        
-        if not all_points:
-            return np.zeros((0, 2))
-        
-        return np.vstack(all_points)
-    
     def get_cumulative_burn_area(
         self,
         current_time_step: int
@@ -164,21 +136,172 @@ class BurnScene:
             
         # Combine all polygons using unary_union
         return unary_union(valid_polys)
+    
+    def sample_points_in_burn_area_at_time(
+        self,
+        time_step: int,
+        num_samples: int,
+        transform,
+        height: int,
+        width: int
+    ) -> np.ndarray:
+        """
+        Sample points from the burn area at a specific time step in pixel coordinates.
+        
+        Args:
+            time_step: Time step index (0-based)
+            num_samples: Number of points to sample
+            transform: Rasterio transform for coordinate conversion
+            height: Raster height in pixels
+            width: Raster width in pixels
+            
+        Returns:
+            Array of shape (num_samples, 2) with pixel coordinates [col, row]
+        """
+        poly = self.get_burn_polygon(time_step)
+        if poly is None or poly.is_empty:
+            return np.array([])
+        
+        # Convert Shapely polygon to list of (lon, lat) tuples
+        exterior_coords = list(poly.exterior.coords)
+        
+        # Use the geo_utils function to sample
+        sampled_pts = sample_points_in_polygon(
+            exterior_coords, num_samples, transform, height, width
+        )
+        return sampled_pts
+    
+    def sample_points_in_cumulative_burn_area(
+        self,
+        current_time_step: int,
+        num_samples: int,
+        transform,
+        height: int,
+        width: int
+    ) -> np.ndarray:
+        """
+        Sample points from the cumulative burn area up to a specific time step.
+        
+        Args:
+            current_time_step: Current time step (0-based)
+            num_samples: Number of points to sample
+            transform: Rasterio transform for coordinate conversion
+            height: Raster height in pixels
+            width: Raster width in pixels
+            
+        Returns:
+            Array of shape (num_samples, 2) with pixel coordinates [col, row]
+        """
+        cumulative_poly = self.get_cumulative_burn_area(current_time_step)
+        if cumulative_poly is None or cumulative_poly.is_empty:
+            return np.array([])
+        
+        # Convert Shapely polygon to list of (lon, lat) tuples
+        if hasattr(cumulative_poly, 'exterior'):
+            # Single polygon
+            exterior_coords = list(cumulative_poly.exterior.coords)
+        else:
+            # MultiPolygon - use the first polygon
+            exterior_coords = list(cumulative_poly.geoms[0].exterior.coords)
+        
+        # Use the geo_utils function to sample
+        sampled_pts = sample_points_in_polygon(
+            exterior_coords, num_samples, transform, height, width
+        )
+        return sampled_pts
+    
+    def initialize_trajectories_for_burn_area(
+        self,
+        time_step: int,
+        num_samples: int,
+        transform,
+        height: int,
+        width: int,
+        initial_course_deg: float = 270
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample points from burn area and initialize trajectories for them.
+        
+        Args:
+            time_step: Time step index (0-based)
+            num_samples: Number of points to sample
+            transform: Rasterio transform for coordinate conversion
+            height: Raster height in pixels
+            width: Raster width in pixels
+            initial_course_deg: Initial course in degrees (0=N, 90=E, 180=S, 270=W)
+            
+        Returns:
+            Tuple of (sampled_points, initial_directions) arrays
+        """
+        sampled_pts = self.sample_points_in_burn_area_at_time(
+            time_step, num_samples, transform, height, width
+        )
+        
+        if len(sampled_pts) == 0:
+            return np.array([]), np.array([])
+        
+        directions = initialize_particle_trajectories_from_course(
+            sampled_pts, initial_course_deg
+        )
+        
+        return sampled_pts, directions
 
 
-def create_burn_scene_from_polygons(
-    polygons: List[ShapelyPolygon]
-) -> BurnScene:
-    """Create a burn scene from a list of polygons.
+def sample_points_in_burn_area(
+    geojson_path: str,
+    num_samples: int,
+    transform,
+    height: int,
+    width: int
+) -> np.ndarray:
+    """
+    Randomly sample points within a burn area polygon from a GeoJSON file.
     
     Args:
-        polygons: List of Shapely Polygons, one per time step
+        geojson_path: Path to GeoJSON file with burn area polygon
+        num_samples: Number of points to sample
+        transform: Rasterio transform for coordinate conversion
+        height: Raster height in pixels
+        width: Raster width in pixels
         
     Returns:
-        Initialized BurnScene object
+        Array of shape (num_samples, 2) with pixel coordinates [col, row]
     """
-    scene = BurnScene()
-    for t, poly in enumerate(polygons):
-        if poly is not None:
-            scene.add_burn_polygon(poly, t)
-    return scene
+    polygons = load_geojson_polygons(geojson_path)
+    if not polygons:
+        return np.array([])
+    
+    # Use first polygon
+    sampled_pts = sample_points_in_polygon(
+        polygons[0], num_samples, transform, height, width
+    )
+    return sampled_pts
+
+
+def initialize_particle_trajectories_from_course(
+    sampled_points: np.ndarray,
+    initial_course_deg: float = 270
+) -> np.ndarray:
+    """
+    Initialize particle trajectories at sampled points with a fixed course direction.
+    
+    Args:
+        sampled_points: Array of shape (N, 2) with pixel coordinates [col, row]
+        initial_course_deg: Initial course in degrees (0=N, 90=E, 180=S, 270=W)
+        
+    Returns:
+        Array of shape (N, 2) with initial direction vectors [u, v]
+    """
+    if len(sampled_points) == 0:
+        return np.array([])
+    
+    # Convert course to radians
+    th = np.deg2rad(initial_course_deg)
+    u = -np.sin(th)  # eastward
+    v = -np.cos(th)  # northward
+    direction_vector = np.array([u, v])
+    
+    # Return the same direction for all particles
+    trajectories = np.tile(direction_vector, (len(sampled_points), 1))
+    
+    return trajectories
