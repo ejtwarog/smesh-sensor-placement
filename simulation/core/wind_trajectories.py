@@ -20,17 +20,31 @@ from simulation.utils.trajectory_utils import calculate_trajectory
 
 
 class WindTrajectory:
-    """Represents a single wind trajectory with position, velocity, and history."""
+    """Represents a single wind trajectory with position, velocity, and history.
     
-    def __init__(self, start_x: float, start_y: float, speed: float, direction_deg: float):
+    Trajectories follow a primary wind vector (e.g., 270° at 5 kts) that is blended
+    with terrain gradient influence. The terrain_influence_factor controls how much
+    the terrain gradient modulates the primary wind direction.
+    """
+    
+    def __init__(
+        self,
+        start_x: float,
+        start_y: float,
+        speed: float,
+        direction_deg: float,
+        terrain_influence_factor: float = 0.2
+    ):
         """
         Initialize a wind trajectory.
         
         Args:
             start_x: Starting X coordinate (pixel)
             start_y: Starting Y coordinate (pixel)
-            speed: Initial speed magnitude
+            speed: Initial speed magnitude (e.g., 5 knots)
             direction_deg: Initial direction in degrees (0=N, 90=E, 180=S, 270=W)
+            terrain_influence_factor: Blend factor for terrain gradient influence (0-1).
+                0 = pure primary wind, 1 = pure terrain gradient
         """
         self.start_x = start_x
         self.start_y = start_y
@@ -38,11 +52,14 @@ class WindTrajectory:
         self.y = start_y
         self.speed = speed
         self.direction_deg = direction_deg
+        self.terrain_influence_factor = terrain_influence_factor
         
         # Convert direction to unit vector
-        th = np.deg2rad(direction_deg)
-        self.u = -np.sin(th) * speed  # eastward
-        self.v = -np.cos(th) * speed  # northward
+        # Note: direction_deg uses standard compass convention (0=N, 90=E, 180=S, 270=W)
+        # In image coordinates with inverted y-axis, we negate the angle
+        th = np.deg2rad(-direction_deg)
+        self.u = np.sin(th) * speed  # eastward
+        self.v = np.cos(th) * speed  # northward
         
         # Track history
         self.history = [(start_x, start_y)]
@@ -52,6 +69,11 @@ class WindTrajectory:
         """
         Advance trajectory by one time step, influenced by terrain gradient.
         
+        The trajectory follows a blended direction:
+        - Primary wind: maintains the initial direction and speed
+        - Terrain influence: causes directional deflection based on terrain gradient
+        - Blend: terrain_influence_factor controls the deflection angle (0=no deflection, 1=full terrain direction)
+        
         Args:
             terrain_vector_field: TerrainVectorField object for terrain vectors
             step_size: Distance to move per step in pixels
@@ -59,24 +81,24 @@ class WindTrajectory:
         # Get terrain vector at current position
         terrain_u, terrain_v = terrain_vector_field.get_vector_at(self.x, self.y)
         
-        # Blend wind velocity with terrain gradient
-        # Terrain gradient influences the trajectory direction
-        combined_u = self.u + terrain_u * 0.1  # Weight terrain influence
-        combined_v = self.v + terrain_v * 0.1
+        # Blend velocity vectors directly (more stable than angle blending)
+        # Primary wind: (self.u, self.v) already has correct speed
+        # Terrain influence: scale terrain vector by influence factor and speed
+        blended_u = self.u + terrain_u * self.speed * self.terrain_influence_factor
+        blended_v = self.v + terrain_v * self.speed * self.terrain_influence_factor
         
-        # Normalize to maintain speed
-        magnitude = np.sqrt(combined_u**2 + combined_v**2)
+        # Normalize to maintain constant speed
+        magnitude = np.sqrt(blended_u**2 + blended_v**2)
         if magnitude > 1e-6:
-            combined_u = (combined_u / magnitude) * self.speed
-            combined_v = (combined_v / magnitude) * self.speed
+            self.u = (blended_u / magnitude) * self.speed
+            self.v = (blended_v / magnitude) * self.speed
+        else:
+            # Fallback: keep current velocity
+            pass
         
         # Update position
-        self.x += combined_u * step_size
-        self.y += combined_v * step_size
-        
-        # Update velocity
-        self.u = combined_u
-        self.v = combined_v
+        self.x += self.u * step_size
+        self.y += self.v * step_size
         
         # Record history
         self.history.append((self.x, self.y))
@@ -99,8 +121,9 @@ class WindTrajectoryField:
         terrain_vector_field: TerrainVectorField,
         burn_area_geojson: str,
         num_trajectories: int = 50,
-        initial_speed: float = 1.0,
-        initial_direction_deg: float = 270
+        initial_speed: float = 5.0,
+        initial_direction_deg: float = 270,
+        terrain_influence_factor: float = 0.02
     ):
         """
         Initialize a wind trajectory field.
@@ -109,14 +132,18 @@ class WindTrajectoryField:
             terrain_vector_field: TerrainVectorField object
             burn_area_geojson: Path to GeoJSON file with burn area
             num_trajectories: Number of trajectories to sample
-            initial_speed: Initial speed for all trajectories
-            initial_direction_deg: Initial direction for all trajectories (degrees)
+            initial_speed: Initial speed for all trajectories (default: 5 knots)
+            initial_direction_deg: Initial direction for all trajectories in degrees
+                (default: 270 = westerly wind)
+            terrain_influence_factor: Blend factor for terrain gradient influence (0-1).
+                Controls how much terrain modulates the primary wind direction.
         """
         self.terrain_vector_field = terrain_vector_field
         self.burn_area_geojson = burn_area_geojson
         self.num_trajectories = num_trajectories
         self.initial_speed = initial_speed
         self.initial_direction_deg = initial_direction_deg
+        self.terrain_influence_factor = terrain_influence_factor
         
         self.trajectories: List[WindTrajectory] = []
         self.active_trajectories: List[WindTrajectory] = []
@@ -134,16 +161,48 @@ class WindTrajectoryField:
             self.terrain_vector_field.width
         )
         
-        # Create trajectories
+        # Create trajectories with terrain influence factor
         for col, row in sampled_points:
             trajectory = WindTrajectory(
                 col, row,
                 self.initial_speed,
-                self.initial_direction_deg
+                self.initial_direction_deg,
+                self.terrain_influence_factor
             )
             self.trajectories.append(trajectory)
         
         self.active_trajectories = self.trajectories.copy()
+    
+    def reinitialize(
+        self,
+        num_trajectories: Optional[int] = None,
+        initial_speed: Optional[float] = None,
+        initial_direction_deg: Optional[float] = None,
+        terrain_influence_factor: Optional[float] = None
+    ):
+        """
+        Reinitialize trajectories with new parameters.
+        
+        Args:
+            num_trajectories: Number of trajectories to sample (uses existing if None)
+            initial_speed: Initial speed for trajectories (uses existing if None)
+            initial_direction_deg: Initial direction in degrees (uses existing if None)
+            terrain_influence_factor: Terrain influence blend factor (uses existing if None)
+        """
+        # Update parameters
+        if num_trajectories is not None:
+            self.num_trajectories = num_trajectories
+        if initial_speed is not None:
+            self.initial_speed = initial_speed
+        if initial_direction_deg is not None:
+            self.initial_direction_deg = initial_direction_deg
+        if terrain_influence_factor is not None:
+            self.terrain_influence_factor = terrain_influence_factor
+        
+        # Clear and reinitialize
+        self.trajectories = []
+        self.active_trajectories = []
+        self._initialize_trajectories()
     
     def step(self, step_size: float = 0.5):
         """

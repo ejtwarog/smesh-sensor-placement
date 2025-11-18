@@ -35,11 +35,14 @@ from simulation_parameters import (
     get_simulation_parameters, update_simulation_parameters, 
     cache_wind_data, get_cached_wind_data, has_wind_data
 )
-from visualization_3d import create_3d_visualization
+#from visualization_3d import create_3d_visualization
 from data_loader import load_all_snodes, load_all_burn_areas, load_geojson, load_snode_data, load_burn_area
 
 # Import atmospheric stability classes
 from core.plume_model import AIR_COLUMN_STABILITY_CLASSES
+
+# Import wind drift dashboard
+from core.drift_scene import WindDriftDashboard
 
 # ==============================================
 # USER CONFIGURATION
@@ -82,6 +85,9 @@ app.title = "Smoke Simulation Dashboard"
 # Load data
 snodes = load_all_snodes(DATA_DIR / LOCATION / SNODE_DIR)
 burn_areas = load_all_burn_areas(DATA_DIR / LOCATION / BURN_AREA_DIR)
+
+# Initialize wind drift dashboard
+wind_drift_dashboard = WindDriftDashboard()
 
 # Cache for 3D visualization to avoid regenerating on every tab click
 _3d_visualization_cache = {
@@ -129,6 +135,7 @@ def serve_layout():
                 dcc.Tab(label='Map View', value='map'),
                 dcc.Tab(label='Wind Data', value='data'),
                 dcc.Tab(label='Simulation Parameters', value='sim-params'),
+                dcc.Tab(label='Wind Drift', value='wind-drift'),
             ]),
             html.Div(id='tabs-content')
         ], style={'font-family': 'Arial, sans-serif'}),
@@ -655,6 +662,151 @@ def render_content(tab):
                 'height': 'calc(100vh - 200px)',
                 'overflowY': 'auto'
             })
+        ])
+
+    elif tab == 'wind-drift':
+        return html.Div([
+            html.Div([
+                # Left sidebar with controls
+                html.Div([
+                    # Control panel
+                    html.Div(
+                        style={
+                            'backgroundColor': '#f9f9f9',
+                            'padding': '12px',
+                            'borderRadius': '8px',
+                            'boxShadow': '0 2px 4px rgba(0,0,0,0.05)',
+                            'fontSize': '12px'
+                        },
+                        children=[
+                            # Particles slider
+                            html.Div(
+                                style={'marginBottom': '15px'},
+                                children=[
+                                    html.Label('Particles', style={'fontWeight': 'bold', 'marginBottom': '4px', 'display': 'block', 'color': STANFORD_STONE, 'fontSize': '0.85rem'}),
+                                    dcc.Slider(
+                                        id='wd-particles-slider',
+                                        min=1,
+                                        max=50,
+                                        value=10,
+                                        step=1,
+                                        marks={i: str(i) for i in range(1, 51, 5)},
+                                        tooltip={'placement': 'bottom', 'always_visible': True}
+                                    ),
+                                    html.Div(id='wd-particles-display', style={'marginTop': '6px', 'color': STANFORD_RED, 'fontSize': '11px'})
+                                ]
+                            ),
+                            
+                            # Wind direction slider
+                            html.Div(
+                                style={'marginBottom': '15px'},
+                                children=[
+                                    html.Label('Wind Dir (°)', style={'fontWeight': 'bold', 'marginBottom': '4px', 'display': 'block', 'color': STANFORD_STONE, 'fontSize': '0.85rem'}),
+                                    dcc.Slider(
+                                        id='wd-direction-slider',
+                                        min=0,
+                                        max=360,
+                                        value=270,
+                                        step=1,
+                                        marks={i: str(i) for i in range(0, 361, 45)},
+                                        tooltip={'placement': 'bottom', 'always_visible': True}
+                                    ),
+                                    html.Div(id='wd-direction-display', style={'marginTop': '6px', 'color': STANFORD_RED, 'fontSize': '11px'})
+                                ]
+                            ),
+                            
+                            # Terrain influence slider
+                            html.Div(
+                                style={'marginBottom': '15px'},
+                                children=[
+                                    html.Label('Terrain Influence', style={'fontWeight': 'bold', 'marginBottom': '4px', 'display': 'block', 'color': STANFORD_STONE, 'fontSize': '0.85rem'}),
+                                    dcc.Slider(
+                                        id='wd-influence-slider',
+                                        min=0,
+                                        max=1,
+                                        value=0.3,
+                                        step=0.05,
+                                        marks={i/10: f'{i/10:.1f}' for i in range(0, 11)},
+                                        tooltip={'placement': 'bottom', 'always_visible': True}
+                                    ),
+                                    html.Div(id='wd-influence-display', style={'marginTop': '6px', 'color': STANFORD_RED, 'fontSize': '11px'})
+                                ]
+                            ),
+                            
+                            # Time slider
+                            html.Div(
+                                style={'marginBottom': '15px'},
+                                children=[
+                                    html.Label('Time (15min increments)', style={'fontWeight': 'bold', 'marginBottom': '4px', 'display': 'block', 'color': STANFORD_STONE, 'fontSize': '0.85rem'}),
+                                    dcc.Slider(
+                                        id='wd-time-slider',
+                                        min=0,
+                                        max=40,
+                                        value=0,
+                                        step=1,
+                                        marks={},
+                                        tooltip={'placement': 'bottom', 'always_visible': True}
+                                    ),
+                                    html.Div(id='wd-time-display', style={'marginTop': '6px', 'color': STANFORD_RED, 'fontSize': '11px'})
+                                ]
+                            ),
+                            
+                            # Reseed button
+                            html.Div(
+                                style={'marginTop': '12px', 'textAlign': 'center'},
+                                children=[
+                                    html.Button(
+                                        'Reseed & Run',
+                                        id='wd-reseed-button',
+                                        n_clicks=0,
+                                        style={
+                                            'backgroundColor': STANFORD_RED,
+                                            'color': 'white',
+                                            'padding': '8px 16px',
+                                            'fontSize': '13px',
+                                            'fontWeight': 'bold',
+                                            'border': 'none',
+                                            'borderRadius': '6px',
+                                            'cursor': 'pointer',
+                                            'transition': 'background-color 0.2s',
+                                            'width': '100%'
+                                        }
+                                    )
+                                ]
+                            )
+                        ]
+                    ),
+                    
+                    # Hidden store for reseed trigger
+                    dcc.Store(id='wd-reseed-store', data=0)
+                ], style={
+                    'width': '20%',
+                    'display': 'inline-block',
+                    'verticalAlign': 'top',
+                    'paddingRight': '10px',
+                    'boxSizing': 'border-box',
+                    'maxHeight': 'calc(100vh - 200px)',
+                    'overflowY': 'auto'
+                }),
+                
+                # Right side with graph (80% width)
+                html.Div([
+                    dcc.Graph(
+                        id='wd-wind-drift-graph',
+                        style={
+                            'backgroundColor': 'white',
+                            'borderRadius': '8px',
+                            'boxShadow': '0 2px 4px rgba(0,0,0,0.05)',
+                            'height': 'calc(100vh - 200px)'
+                        }
+                    )
+                ], style={
+                    'width': '80%',
+                    'display': 'inline-block',
+                    'verticalAlign': 'top',
+                    'boxSizing': 'border-box'
+                })
+            ], style={'display': 'flex', 'height': 'calc(100vh - 200px)', 'padding': '10px', 'gap': '10px'})
         ])
 
 def get_geometry_coordinates(geom):
@@ -1487,6 +1639,90 @@ def update_sim_params_on_tab_click(tab):
             hour_options, end_hour,
             sim_params.timestep_duration,
             sim_params.atmospheric_stability)
+
+# Wind Drift Tab Callbacks
+@app.callback(
+    [Output('wd-time-slider', 'max'),
+     Output('wd-time-slider', 'marks')],
+    Input('wd-wind-drift-graph', 'id'),
+    prevent_initial_call=False
+)
+def initialize_wd_time_slider(_):
+    """Initialize time slider for wind drift tab."""
+    num_files = len(wind_drift_dashboard.burn_area_files)
+    if num_files == 0:
+        return 0, {}
+    
+    # 4 steps per burn area + 24 steps for 6 hours of smoldering
+    max_time_step = (num_files - 1) * 4 + 3 + 24
+    
+    # Create marks for every 4 steps (one per burn area)
+    marks = {}
+    for area_idx in range(num_files):
+        time_step = area_idx * 4
+        marks[time_step] = str(area_idx + 1)
+    
+    # Add smoldering mark at the end
+    smoldering_start = num_files * 4
+    marks[smoldering_start] = 'Smoldering'
+    
+    return max_time_step, marks
+
+
+@app.callback(
+    Output('wd-reseed-store', 'data'),
+    Input('wd-reseed-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def handle_wd_reseed_click(n_clicks):
+    """Handle reseed button click for wind drift tab."""
+    return n_clicks
+
+
+@app.callback(
+    [Output('wd-wind-drift-graph', 'figure'),
+     Output('wd-particles-display', 'children'),
+     Output('wd-direction-display', 'children'),
+     Output('wd-influence-display', 'children'),
+     Output('wd-time-display', 'children')],
+    [Input('wd-particles-slider', 'value'),
+     Input('wd-direction-slider', 'value'),
+     Input('wd-influence-slider', 'value'),
+     Input('wd-time-slider', 'value'),
+     Input('wd-reseed-store', 'data')]
+)
+def update_wd_visualization(num_particles, wind_direction, terrain_influence, time_step, reseed_trigger):
+    """Update wind drift visualization based on slider values."""
+    num_files = len(wind_drift_dashboard.burn_area_files)
+    smoldering_start_step = num_files * 4
+    
+    # Determine if in smoldering phase
+    if time_step >= smoldering_start_step:
+        burn_area_index = num_files - 1
+        is_smoldering = True
+        phase = "Smoldering"
+    else:
+        burn_area_index = time_step // 4
+        burn_area_index = max(0, min(burn_area_index, num_files - 1))
+        is_smoldering = False
+        phase = "Active"
+    
+    # Calculate minutes elapsed
+    minutes_elapsed = time_step * 15
+    hours = minutes_elapsed // 60
+    minutes = minutes_elapsed % 60
+    
+    fig = wind_drift_dashboard.create_figure(num_particles, wind_direction, terrain_influence, burn_area_index, is_smoldering=is_smoldering)
+    
+    time_str = f'T+{hours}h {minutes}m' if hours > 0 else f'T+{minutes}m'
+    
+    return (
+        fig,
+        f'Trajectories: {num_particles}',
+        f'Direction: {wind_direction}°',
+        f'Influence: {terrain_influence:.2f}',
+        f'Time: {time_str} ({phase})'
+    )
 
 if __name__ == '__main__':
     app.run_server(debug=DEBUG, port=PORT)

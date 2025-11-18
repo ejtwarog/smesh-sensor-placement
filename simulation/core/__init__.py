@@ -1,20 +1,18 @@
 """
 Core functionality for smoke simulation and analysis.
+
+Active Modules:
+- drift_scene: Wind drift dashboard visualization
+- terrain_vectors: DEM and terrain vector field
+- wind_trajectories: Particle trajectory simulation
+- smoke_points: Burn area sampling
+- plume_model: Atmospheric stability classes
 """
 
-from .disturbance import (
-    FullDisturbances,
-    FullDisturbanceTrajectory,
-    find_most_likely_trajectories,
-    most_likely_disturbance_trajectories
-)
-
-from .wind_distribution import WindDistribution
+from .terrain_vectors import TerrainVectorField
+from .plume_model import AIR_COLUMN_STABILITY_CLASSES
 
 __all__ = [
-    "FullDisturbances",
-    "FullDisturbanceTrajectory",
-    "find_most_likely_trajectories",
-    "most_likely_disturbance_trajectories",
-    "WindDistribution"
+    "TerrainVectorField",
+    "AIR_COLUMN_STABILITY_CLASSES"
 ]
